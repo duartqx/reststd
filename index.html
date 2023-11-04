@@ -11,8 +11,9 @@
 
         <div id="result"></div>
 
-        <button hx-get="/post_not_allowed" hx-target="#result">GET</button>
-        <button hx-post="/post_not_allowed" hx-target="#result">POST</button>
+        <button hx-get="/get_not_allowed" hx-target="#result" hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)">GET</button>
+        <button hx-post="/get_not_allowed" hx-target="#result" hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)">POST</button>
+        <button hx-put="/get_not_allowed" hx-target="#result" hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)">PUT</button>
     
     </body>
 </html>

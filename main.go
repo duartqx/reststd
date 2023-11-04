@@ -12,8 +12,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type Handler func(w http.ResponseWriter, r *http.Request)
-
 type ResponseRecorderWriter struct {
 	http.ResponseWriter
 	Status int
@@ -24,11 +22,48 @@ func (rr *ResponseRecorderWriter) WriteHeader(status int) {
 	rr.ResponseWriter.WriteHeader(status)
 }
 
-func LoggingMiddleware(next http.Handler) http.Handler {
-	strepeater := func(l int, v interface{}) string {
-		value := fmt.Sprint(v)
-		return value + strings.Repeat(" ", int(math.Max(float64(l-len(value)), 0)))
-	}
+type RequestLogger struct {
+	method string
+	status int
+	since  time.Duration
+	path   string
+}
+
+func (rl RequestLogger) pad(length int, value interface{}) string {
+	var (
+		v string = fmt.Sprint(value)
+		r int    = int(math.Max(float64(length-len(v)), 0))
+	)
+	return v + strings.Repeat(" ", r)
+}
+
+func (rl RequestLogger) GetMethod() string {
+	return rl.pad(7, rl.method)
+}
+
+func (rl RequestLogger) GetSince() string {
+	return rl.pad(12, rl.since)
+}
+
+func (rl RequestLogger) GetStatus() int {
+	return rl.status
+}
+
+func (rl RequestLogger) GetPath() string {
+	return rl.path
+}
+
+func (rl RequestLogger) String() string {
+	return fmt.Sprintf(
+		"| %s | %d | %s | %s",
+		rl.GetMethod(),
+		rl.GetStatus(),
+		rl.GetSince(),
+		rl.GetPath(),
+	)
+}
+
+func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -39,12 +74,12 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(writer, r)
 
-		var (
-			mtd   string = strepeater(7, r.Method)
-			since string = strepeater(12, time.Since(start))
-		)
-
-		log.Printf("| %s | %d | %s | %s", mtd, writer.Status, since, r.URL.Path)
+		log.Println(RequestLogger{
+			method: r.Method,
+			status: writer.Status,
+			since:  time.Since(start),
+			path:   r.URL.Path,
+		})
 	})
 }
 
@@ -52,7 +87,19 @@ func NotFoundHandler(r *mux.Router) http.Handler {
 	return r.
 		NewRoute().
 		BuildOnly().
-		Handler(LoggingMiddleware(http.HandlerFunc(http.NotFound))).
+		Handler(LoggerMiddleware(http.HandlerFunc(http.NotFound))).
+		GetHandler()
+}
+
+func MethodNotAllowedHandler(r *mux.Router) http.Handler {
+	e := func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "", http.StatusMethodNotAllowed)
+	}
+
+	return r.
+		NewRoute().
+		BuildOnly().
+		Handler(LoggerMiddleware(http.HandlerFunc(e))).
 		GetHandler()
 }
 
@@ -66,28 +113,35 @@ func main() {
 	router := mux.NewRouter()
 
 	router.NotFoundHandler = NotFoundHandler(router)
+	router.MethodNotAllowedHandler = MethodNotAllowedHandler(router)
 
-	router.Use(LoggingMiddleware)
+	router.Use(LoggerMiddleware)
 
-	router.HandleFunc("/post_not_allowed", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			w.Write([]byte("Not permitted"))
-		} else {
-			w.Write([]byte("Ok"))
-		}
-	})
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		indexView.Execute(w, nil)
-	})
+	router.
+		Name("get_not_allowed").
+		Path("/get_not_allowed").
+		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("Ok: " + r.Method))
+		}).
+		Methods("POST", "PUT")
+
+	router.
+		Name("index").
+		Path("/").
+		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			indexView.Execute(w, nil)
+		}).
+		Methods("GET")
+
+	port := ":8000"
 
 	srv := &http.Server{
-		Handler: router,
-		Addr:    "127.0.0.1:8000",
-		// Good practice: enforce timeouts for servers you create!
+		Handler:      router,
+		Addr:         "127.0.0.1" + port,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Println("Listening at port 8000")
+	log.Println("Listening at port " + port)
 	log.Fatalln(srv.ListenAndServe())
 }
