@@ -63,6 +63,36 @@ func (rl RequestLogger) String() string {
 	)
 }
 
+func (rl RequestLogger) PanicString(err interface{}) string {
+
+	stringer := func(e string) string {
+		const tmpl string = "| %s | %s | %s"
+		return fmt.Sprintf(tmpl, rl.GetMethod(), rl.GetPath(), e)
+	}
+
+	e, ok := err.(error)
+	if !ok {
+		return stringer("Unknown")
+	}
+	return stringer(e.Error())
+}
+
+func RecoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			rl := RequestLogger{
+				method: r.Method,
+				path:   r.URL.Path,
+			}
+			if err := recover(); err != nil {
+				log.Println(rl.PanicString(err))
+				w.WriteHeader(500)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -115,7 +145,7 @@ func main() {
 	router.NotFoundHandler = NotFoundHandler(router)
 	router.MethodNotAllowedHandler = MethodNotAllowedHandler(router)
 
-	router.Use(LoggerMiddleware)
+	router.Use(RecoveryMiddleware, LoggerMiddleware)
 
 	router.
 		Name("get_not_allowed").
@@ -124,6 +154,16 @@ func main() {
 			w.Write([]byte("Ok: " + r.Method))
 		}).
 		Methods("POST", "PUT")
+
+	// Proposital nil pointer panic
+	router.
+		Name("nil_pointer").
+		Path("/nil_pointer").
+		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var s struct{ n *struct{ n int } }
+			w.Write([]byte(fmt.Sprint(s.n.n)))
+		}).
+		Methods("GET")
 
 	router.
 		Name("index").
