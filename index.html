@@ -7,6 +7,13 @@
     <link href="css/style.css" rel="stylesheet" />
   </head>
   <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+  <script>
+    function resetResult() {
+      setTimeout(() => {
+        htmx.find("#result").innerHTML = "";
+      }, 2000);
+    }
+  </script>
   <body>
     <div id="result"></div>
 
@@ -14,14 +21,14 @@
     <button
       hx-post="/get_not_allowed"
       hx-target="#result"
-      hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)"
+      hx-on::after-request="resetResult()"
     >
       POST
     </button>
     <button
       hx-put="/get_not_allowed"
       hx-target="#result"
-      hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)"
+      hx-on::after-request="resetResult()"
     >
       PUT
     </button>
