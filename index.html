@@ -1,19 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-    <head>
-        <title></title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="css/style.css" rel="stylesheet">
-    </head>
-    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
-    <body>
+  <head>
+    <title></title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="css/style.css" rel="stylesheet" />
+  </head>
+  <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+  <body>
+    <div id="result"></div>
 
-        <div id="result"></div>
-
-        <button hx-get="/get_not_allowed" hx-target="#result" hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)">GET</button>
-        <button hx-post="/get_not_allowed" hx-target="#result" hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)">POST</button>
-        <button hx-put="/get_not_allowed" hx-target="#result" hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)">PUT</button>
-    
-    </body>
+    <button hx-get="/nil_pointer" hx-target="#result">GET</button>
+    <button
+      hx-post="/get_not_allowed"
+      hx-target="#result"
+      hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)"
+    >
+      POST
+    </button>
+    <button
+      hx-put="/get_not_allowed"
+      hx-target="#result"
+      hx-on::after-request="setTimeout(() => { htmx.find('#result').innerHTML = '' }, 2000)"
+    >
+      PUT
+    </button>
+  </body>
 </html>
