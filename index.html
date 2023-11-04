@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="css/style.css" rel="stylesheet">
+    </head>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <body>
+
+        <div id="result"></div>
+
+        <button hx-get="/post_not_allowed" hx-target="#result">GET</button>
+        <button hx-post="/post_not_allowed" hx-target="#result">POST</button>
+    
+    </body>
+</html>
